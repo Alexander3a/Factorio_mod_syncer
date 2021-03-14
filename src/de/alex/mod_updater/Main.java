@@ -23,6 +23,7 @@ public class Main {
     public static Lib lib = new Lib();
     public static String folder = "";
     public static Boolean debug;
+    public static Boolean adelina_mode= false;
     public static void main(String[] args) {
 	// write your code here
         try {
@@ -80,13 +81,19 @@ public class Main {
         }else{
             debug=true;
         }
-        try {
-            if(args[0].equals("--mods-folder")){
-                folder=args[1].replaceAll("\"","");
+        for(int i = 0;i< args.length  ;i++){
+            try {
+                if(args[i].equals("--mods-folder")){
+                    folder=args[i+1].replaceAll("\"","");
+                }
+                if(args[i].equalsIgnoreCase("-adelina")){
+                    adelina_mode=true;
+                }
+            }catch (Exception e){
+                System.out.println("no folder provided");
+                return;
             }
-        }catch (Exception e){
-            System.out.println("no folder provided");
-            return;
+
         }
 
         if(folder.equals("")){
@@ -97,21 +104,22 @@ public class Main {
         createlist();
         checklists();
         sum_changes();
-//        try {
-//            Thread.sleep(1000);
-//        } catch (InterruptedException e) {
-//            e.printStackTrace();
-//        }
         make_changes();
         System.out.println("done");
     }
     public static void make_changes(){
+        if(adelina_mode){
+            System.out.println("making changes");
+        }
         to_delete.stream().forEach(new Consumer<String>() {
             @Override
             public void accept(String s) {
                 File f = new File(folder+s);
                 f.delete();
                 //System.out.println("deleted "+s);
+                if(adelina_mode){
+                    System.out.println("deleted "+s);
+                }
             }
         });
         int[] i ={0};
@@ -145,6 +153,9 @@ public class Main {
         });
     }
     public static void sum_changes(){
+        if(adelina_mode){
+            System.out.println("printing changes");
+        }
         if(!to_delete.isEmpty()){
             System.out.println("Deleting:");
             to_delete.stream().forEach(new Consumer<String>() {
@@ -166,9 +177,15 @@ public class Main {
                 }
             });
         }
+        if(adelina_mode){
+            System.out.println("done printing changes");
+        }
         //System.out.println("listed");
     }
     public static void checklists(){
+        if(adelina_mode){
+            System.out.println("checking lists");
+        }
         path_hash.forEach(new BiConsumer<String, String>() {
             @Override
             public void accept(String s, String s2) {
@@ -186,6 +203,9 @@ public class Main {
                 }
             }
         });
+        if(adelina_mode){
+            System.out.println("checked list for things to delete");
+        }
         online_list.forEach(new BiConsumer<String, String>() {
             @Override
             public void accept(String s, String s2) {
@@ -211,6 +231,9 @@ public class Main {
                 }
             }
         });
+        if(adelina_mode){
+            System.out.println("checked list for things to add");
+        }
     }
     public static void downloadlist(){
         try {
@@ -222,6 +245,9 @@ public class Main {
             while (cur!=null){
                 try {
                     online_list.put(cur.split("<>")[0],cur.split("<>")[1]);
+                    if(adelina_mode){
+                        System.out.println("added "+cur);
+                    }
                     //System.out.println("put "+cur);
                 }catch (Exception e){
 
@@ -257,6 +283,8 @@ public class Main {
 //                    }
                 }else{
                     unpack_folder(file);
+                    if(adelina_mode)
+                    System.out.println("made hash of files in folder "+file.getAbsolutePath().replace(Main.folder,""));
                 }
             }
         });
