@@ -12,6 +12,7 @@ import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.Scanner;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
@@ -84,7 +85,7 @@ public class Main {
         for(int i = 0;i< args.length  ;i++){
             try {
                 if(args[i].equals("--mods-folder")){
-                    folder=args[i+1].replaceAll("\"","");
+                    folder=args[i+1].replace("\"","");
                 }
                 if(args[i].equalsIgnoreCase("-adelina")){
                     adelina_mode=true;
@@ -104,7 +105,12 @@ public class Main {
         createlist();
         checklists();
         sum_changes();
-        make_changes();
+        Scanner scanner = new Scanner(System.in);
+        System.out.print("enter y to continue: ");
+        if(scanner.nextLine().equals("y")){
+            make_changes();
+        }
+        scanner.close();
         System.out.println("done");
     }
     public static void make_changes(){
@@ -282,9 +288,12 @@ public class Main {
 //                        e.printStackTrace();
 //                    }
                 }else{
+                    if(file.getAbsolutePath().replace(Main.folder,"").equals("\\.vscode")){
+                        return;
+                    }
                     unpack_folder(file);
                     if(adelina_mode)
-                    System.out.println("made hash of files in folder "+file.getAbsolutePath().replace(Main.folder,""));
+                        System.out.println("made hash of files in folder "+file.getAbsolutePath().replace(Main.folder,""));
                 }
             }
         });
