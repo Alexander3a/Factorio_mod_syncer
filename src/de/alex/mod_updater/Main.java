@@ -1,20 +1,19 @@
 package de.alex.mod_updater;
 
-import jdk.internal.dynalink.support.BottomGuardingDynamicLinker;
-import jdk.nashorn.internal.runtime.regexp.joni.Regex;
 
 import javax.swing.text.StyledEditorKit;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
+import java.net.URI;
 import java.nio.file.Files;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Scanner;
+import java.nio.file.Paths;
+import java.util.*;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
+
+//E:\Users\Alex\Desktop\Desktop\mod manager\mods\1.0
 
 public class Main {
     public static HashMap<String,String> path_hash =new HashMap<>();
@@ -22,9 +21,10 @@ public class Main {
     public static ArrayList<String> to_delete= new ArrayList();
     public static ArrayList<String> to_add= new ArrayList();
     public static Lib lib = new Lib();
-    public static String folder = "";
+    public static File folder = null;
     public static Boolean debug;
     public static Boolean adelina_mode= false;
+    public static Boolean gen_mode = false;
     public static void main(String[] args) {
 	// write your code here
         try {
@@ -34,61 +34,69 @@ public class Main {
         }catch (Exception e){
 
         }
-        File jar = new File(Main.class.getProtectionDomain().getCodeSource().getLocation().getFile());
-        if(jar.getAbsolutePath().endsWith(".jar")){
-            Main.debug = false;
-            String sum = null;
-            try {
-                sum = lib.getMD5Checksum(jar);
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-            try {
-                File xd = File.createTempFile("test",".txt");
-                xd.delete();
-                lib.download("https://ts3byalex.ddns.net/pw/modsupdaterhash.txt",xd.getAbsolutePath());
-                BufferedReader br = new BufferedReader(new FileReader(xd));
-                String out ="";
-                String online_sum="";
-                while (out!=null){
-                    out = br.readLine();
-                    try {
-                        if(out.length()==32){
-                            online_sum = out;
-                        }
-                    }catch (Exception e){
-                        
-                    }
-
-                }
-                if(!online_sum.equals("")){
-                    if(!online_sum.equals(sum)){
-                        //System.out.println(sum+" "+online_sum);
-                        File xd2 = File.createTempFile("test",".jar");
-                        xd2.delete();
-                        lib.download("https://ts3byalex.ddns.net/pw/updater.jar",xd2.getAbsolutePath());
-                        Runtime.getRuntime().exec("java -jar "+xd2+" -url https://ts3byalex.ddns.net/pw/factorio_mod_updater.jar -file "+jar.getAbsolutePath()+" -args -b");
-                        System.out.println("updating");
-                        System.exit(1);
-                    }
-                }else{
-                    System.out.println("found no online sum");
-                }
-            } catch (IOException e) {
-                e.printStackTrace();
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        }else{
-            debug=true;
-        }
+        System.out.println("v2");
+//        File jar = new File(Main.class.getProtectionDomain().getCodeSource().getLocation().getFile());
+//        if(jar.getAbsolutePath().endsWith(".jar")){
+//            Main.debug = false;
+//            String sum = null;
+//            try {
+//                sum = lib.getMD5Checksum(jar);
+//            } catch (Exception e) {
+//                e.printStackTrace();
+//            }
+//            try {
+//                File xd = File.createTempFile("test",".txt");
+//                xd.delete();
+//                lib.download("https://ts3byalex.ddns.net/pw/modsupdaterhash.txt",xd.getAbsolutePath());
+//                BufferedReader br = new BufferedReader(new FileReader(xd));
+//                String out ="";
+//                String online_sum="";
+//                while (out!=null){
+//                    out = br.readLine();
+//                    try {
+//                        if(out.length()==32){
+//                            online_sum = out;
+//                        }
+//                    }catch (Exception e){
+//
+//                    }
+//
+//                }
+//                if(!online_sum.equals("")){
+//                    if(!online_sum.equals(sum)){
+//                        //System.out.println(sum+" "+online_sum);
+//                        File xd2 = File.createTempFile("test",".jar");
+//                        xd2.delete();
+//                        lib.download("https://ts3byalex.ddns.net/pw/updater.jar",xd2.getAbsolutePath());
+//                        Runtime.getRuntime().exec("java -jar "+xd2+" -url https://ts3byalex.ddns.net/pw/factorio_mod_updater.jar -file "+jar.getAbsolutePath()+" -args -b");
+//                        System.out.println("updating");
+//                        System.exit(1);
+//                    }
+//                }else{
+//                    System.out.println("found no online sum");
+//                }
+//            } catch (IOException e) {
+//                e.printStackTrace();
+//            } catch (Exception e) {
+//                e.printStackTrace();
+//            }
+//        }else{
+//            debug=true;
+//        }
         for(int i = 0;i< args.length  ;i++){
             try {
                 if(args[i].equals("--mods-folder")){
-                    folder=args[i+1].replace("\"","");
+                    String file = args[i+1].replace("\"","");
+                    if((int)file.charAt(file.length()-1)==32){
+                        file=file.substring(0,file.length()-1);
+                    }
+                    folder=new File(file);
                 }
                 if(args[i].equalsIgnoreCase("-adelina")){
                     adelina_mode=true;
+                }
+                if(args[i].equalsIgnoreCase("-gen")){
+                    gen_mode=true;
                 }
             }catch (Exception e){
                 System.out.println("no folder provided");
@@ -97,27 +105,48 @@ public class Main {
 
         }
 
-        if(folder.equals("")){
+        if(folder==null){
             System.out.println("no folder provided");
+            return;
+        }
+        if(!folder.exists()){
+            System.out.println("folder does not exist");
+            return;
+        }
+        if(gen_mode){
+            createlist();
+            System.exit(1);
             return;
         }
         downloadlist();
         createlist();
         checklists();
         sum_changes();
-        Scanner scanner = new Scanner(System.in);
-        System.out.print("enter y to continue: ");
-        if(scanner.nextLine().equals("y")){
-            make_changes();
+
+
+        if(to_delete.isEmpty()&&to_add.isEmpty()){
+            System.out.println("nothing to change");
+            try {
+                Thread.sleep(1500);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }else{
+            Scanner scanner = new Scanner(System.in);
+            System.out.println(folder.getAbsolutePath());
+            System.out.print("enter y to continue: ");
+            if(scanner.nextLine().equals("y")){
+                make_changes();
+            }
+            scanner.close();
         }
-        scanner.close();
         System.out.println("done");
     }
     public static void make_changes(){
         if(adelina_mode){
             System.out.println("making changes");
         }
-        to_delete.stream().forEach(new Consumer<String>() {
+        to_delete.forEach(new Consumer<String>() {
             @Override
             public void accept(String s) {
                 File f = new File(folder+s);
@@ -129,15 +158,14 @@ public class Main {
             }
         });
         int[] i ={0};
-        to_add.stream().forEach(new Consumer<String>() {
+        to_add.forEach(new Consumer<String>() {
             @Override
             public void accept(String s) {
                 File f = new File(folder+s);
-                File main_folder = new File(folder);
                 Boolean stop = true;
                 File tempfile=null;
                 while (stop){
-                    if(!f.getParentFile().getAbsolutePath().equals(main_folder.getAbsolutePath())){
+                    if(!f.getParentFile().getAbsolutePath().equals(folder.getAbsolutePath())){
                         tempfile = f.getParentFile();
                         if(f.getParentFile().exists()){
                             stop=false;
@@ -164,7 +192,7 @@ public class Main {
         }
         if(!to_delete.isEmpty()){
             System.out.println("Deleting:");
-            to_delete.stream().forEach(new Consumer<String>() {
+            to_delete.forEach(new Consumer<String>() {
                 @Override
                 public void accept(String s) {
 //                File f = new File(folder+s);
@@ -175,7 +203,7 @@ public class Main {
         }
         if(!to_add.isEmpty()){
             System.out.println("Adding:");
-            to_add.stream().forEach(new Consumer<String>() {
+            to_add.forEach(new Consumer<String>() {
                 @Override
                 public void accept(String s) {
                     //File f = new File(folder+s);
@@ -212,10 +240,8 @@ public class Main {
         if(adelina_mode){
             System.out.println("checked list for things to delete");
         }
-        online_list.forEach(new BiConsumer<String, String>() {
-            @Override
-            public void accept(String s, String s2) {
-                try {
+        online_list.forEach((s, s2) -> {
+            try {
 //                    if(s.equals("\\aai-vehicles-flame-tumbler_0.6.1\\thumbnail.png")){
 //                        if(path_hash.containsKey(s)){
 //                            System.out.println("true");
@@ -223,18 +249,17 @@ public class Main {
 //                            System.out.println("false");
 //                        }
 //                    }
-                    if(!path_hash.containsKey(s)){
-                        //System.out.println(s+" only online but not local");
-                        to_add.add(s);
-                    }
-                    //if(!path_hash.get(s.replace(folder,"")).equals(s2)){
-                        //System.out.println(s.replace(folder,"")+" online:"+path_hash.get(s.replace(folder,""))+" offline:"+online_list.get(s));
-                    //}
-                }catch (Exception e){
-                    e.printStackTrace();
-                    //System.out.println(s.replace(folder,"")+" only online but not local");
-                    //System.out.println(online_list.containsKey(s.replace(folder,""))+" "+s.replace(folder,""));
+                if(!path_hash.containsKey(s)){
+                    //System.out.println(s+" only online but not local");
+                    to_add.add(s);
                 }
+                //if(!path_hash.get(s.replace(folder,"")).equals(s2)){
+                    //System.out.println(s.replace(folder,"")+" online:"+path_hash.get(s.replace(folder,""))+" offline:"+online_list.get(s));
+                //}
+            }catch (Exception e){
+                e.printStackTrace();
+                //System.out.println(s.replace(folder,"")+" only online but not local");
+                //System.out.println(online_list.containsKey(s.replace(folder,""))+" "+s.replace(folder,""));
             }
         });
         if(adelina_mode){
@@ -267,60 +292,101 @@ public class Main {
         }
     }
     public static void createlist(){
-        File folder = new File(Main.folder);
         //Main.folder = folder.getAbsolutePath();
         if(folder.listFiles()==null){
             System.out.println("wrong input");
             System.exit(10);
         }
-        Arrays.stream(folder.listFiles()).forEach(new Consumer<File>() {
-            @Override
-            public void accept(File file) {
-                if(file.isFile()){
-                    try {
-                        path_hash.put(file.getAbsolutePath().replace(Main.folder,""),lib.getMD5Checksum(file));
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                    }
-//                    try {
-//                        path_hash.put(file.getAbsolutePath(),lib.getMD5Checksum(file));
-//                    } catch (Exception e) {
-//                        e.printStackTrace();
+        Long time = System.currentTimeMillis();
+        unpack_folder(folder);
+//        while (!threads.isEmpty()){
+//            System.out.println(threads.size());
+//            try {
+//                Thread.sleep(500);
+//            } catch (InterruptedException e) {
+//                e.printStackTrace();
+//            }
+//            ArrayList<Thread> fuck = new ArrayList();
+//            try {
+//                threads.forEach(new Consumer<Thread>() {
+//                    @Override
+//                    public void accept(Thread thread) {
+////                        System.out.println(thread.isAlive());
+//                        if(thread==null){
+//                            fuck.add(thread);
+//                            return;
+//                        }
+//                        if(!thread.isAlive()){
+//                            fuck.add(thread);
+//                        }
 //                    }
-                }else{
-                    if(file.getAbsolutePath().replace(Main.folder,"").equals("\\.vscode")){
-                        return;
-                    }
-                    unpack_folder(file);
-                    if(adelina_mode)
-                        System.out.println("made hash of files in folder "+file.getAbsolutePath().replace(Main.folder,""));
-                }
-            }
-        });
-        if(debug){
+//                });
+//            }catch (ConcurrentModificationException e){
+//                System.out.println("fuck");
+//            }
+//            threads.removeAll(fuck);
+//        }
+        System.out.println("Took: "+(System.currentTimeMillis()-time)/1000+" s");
+
+        if(gen_mode){
             Writer.in(".\\modshash.txt");
-            path_hash.forEach(new BiConsumer<String, String>() {
-                @Override
-                public void accept(String s, String s2) {
-                    Writer.Write(s.replace(folder.getAbsolutePath(),"")+"<>"+ s2);
-                }
-            });
+            path_hash.forEach((s, s2) -> Writer.Write(s.replace(folder.getAbsolutePath(),"")+"<>"+ s2));
         }
     }
+    public static ArrayList<Thread> threads = new ArrayList<>();
     public static void unpack_folder(File file){
-        Arrays.stream(file.listFiles()).forEach(new Consumer<File>() {
-            @Override
-            public void accept(File file) {
-                if(file.isDirectory()){
-                    unpack_folder(file);
-                }else{
-                    try {
-                        path_hash.put(file.getAbsolutePath().replace(folder,""),lib.getMD5Checksum(file));
-                    } catch (Exception e) {
-                        e.printStackTrace();
+        for (File listFile : file.listFiles()) {
+//            System.out.println(file.getAbsolutePath().replaceAll(" ","-"));
+//            System.out.println(listFile.getName().replaceAll(" ","-"));
+//            System.out.println(listFile.getAbsolutePath().replaceAll(" ","-"));
+//            listFile = new File(listFile.getAbsolutePath());
+            if(adelina_mode){
+                System.out.println("unpacking "+listFile.getAbsolutePath());
+            }
+            if (listFile.isDirectory()) {
+                unpack_folder(listFile);
+                if(adelina_mode){
+                    System.out.println("made hash of folder " + listFile.getAbsolutePath().replace(folder.getAbsolutePath(),""));
+                }
+            } else {
+                try {
+                    path_hash.put(listFile.getAbsolutePath().replace(folder.getAbsolutePath(),""), lib.getMD5Checksum(listFile));
+                    if(adelina_mode){
+                        System.out.println("made hash of file " + listFile.getAbsolutePath().replace(folder.getAbsolutePath(),""));
                     }
+                } catch (Exception e) {
+                    e.printStackTrace();
                 }
             }
-        });
+        }
+//        Arrays.stream(file.listFiles()).forEach(file1 -> {
+////                Thread[] t = {null};
+////                t[0] = new Thread(new Runnable() {
+////                    @Override
+////                    public void run() {
+//                    if (file1.isDirectory()) {
+//                        unpack_folder(file1);
+//                        if(adelina_mode){
+//                            System.out.println("made hash of folder " + file1.getAbsolutePath().replace(folder.getAbsolutePath(),""));
+//                        }
+//                    } else {
+//                        try {
+//                            System.out.println(file1.getAbsolutePath());
+//                            System.out.println(folder.getAbsolutePath());
+//                            path_hash.put(file1.getAbsolutePath().replace(folder.getAbsolutePath(),""), lib.getMD5Checksum(file1));
+//                            if(adelina_mode){
+//                                System.out.println("made hash of file " + file1.getAbsolutePath().replace(folder.getAbsolutePath(),""));
+//                            }
+//                        } catch (Exception e) {
+//                            e.printStackTrace();
+//                        }
+//                    }
+////                        threads.remove(t[0]);
+////                    }
+////                });
+////                t[0].start();
+////                threads.add(t[0]);
+//
+//        });
     }
 }
