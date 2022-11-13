@@ -25,6 +25,7 @@ public class Main {
     public static Boolean debug;
     public static Boolean adelina_mode= false;
     public static Boolean gen_mode = false;
+    public static Boolean unix_like=false;
     public static void main(String[] args) {
 	// write your code here
         try {
@@ -35,6 +36,11 @@ public class Main {
 
         }
         System.out.println("v2");
+        if(System.getProperty("os.name").contains("Linux")){
+            System.out.println("using unix syntax");
+            unix_like=true;
+        }
+
 //        File jar = new File(Main.class.getProtectionDomain().getCodeSource().getLocation().getFile());
 //        if(jar.getAbsolutePath().endsWith(".jar")){
 //            Main.debug = false;
@@ -150,6 +156,10 @@ public class Main {
             @Override
             public void accept(String s) {
                 File f = new File(folder+s);
+                if(unix_like){
+                    String abs =f.getAbsolutePath().replaceAll("\\\\","/");
+                    f=new File(abs);
+                }
                 f.delete();
                 //System.out.println("deleted "+s);
                 if(adelina_mode){
@@ -162,6 +172,10 @@ public class Main {
             @Override
             public void accept(String s) {
                 File f = new File(folder+s);
+                if(unix_like){
+                    String abs =f.getAbsolutePath().replaceAll("\\\\","/");
+                    f=new File(abs);
+                }
                 Boolean stop = true;
                 File tempfile=null;
                 while (stop){
